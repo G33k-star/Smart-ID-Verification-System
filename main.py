@@ -19,6 +19,7 @@ Logic:
 import csv
 import os
 from datetime import datetime
+from getpass import getpass
 
 # =========================
 # SETTINGS
@@ -181,7 +182,7 @@ def main():
         print("")
 
         # Use input() for Debian/Geany reliability
-        swipe = input("Swipe Card: ").strip()
+        swipe = getpass("Swipe Card: ").strip()
 
         # Hidden testing exit command
         if swipe.lower() == "exit":
