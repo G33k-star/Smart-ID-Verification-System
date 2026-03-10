@@ -17,9 +17,9 @@ This project is designed to run on systems such as a Raspberry Pi or Linux works
   - Student ID
   - Phone Number
   - Timestamp
-- Automatically resets at **3:00 AM** and begins a new daily log
+- Automatically resets at 3:00 AM and begins a new daily log
 - Designed for lightweight operation on Debian-based systems
-- Compatible with **Python 3.5 environments**
+- Compatible with Python 3.5 environments
 
 ---
 
