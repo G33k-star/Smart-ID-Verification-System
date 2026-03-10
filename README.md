@@ -34,4 +34,10 @@ Each day creates a new CSV file for easier organization and record keeping.
 ## Example CSV Output
 | Name | Card ID | Student ID | Phone Number | Timestamp |
 | :-------- | :---------- | :-------: | :-------: | :-------: |
-| John Doe    | 1234 4568 9123 4567 | 1234567890 | 1234567890 | 2026-03-10 14:32:11 |
+| John Doe    | 1234 4568 9012 3456 | 1234567890 | 1234567890 | 2026-03-10 14:32:11 |
+
+## Requirements
+
+- Python 3.5+
+- Debian / Raspberry Pi OS recommended
+- USB ID card scanner or compatible input device
