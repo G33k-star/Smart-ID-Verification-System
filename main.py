@@ -1,9 +1,8 @@
 import csv
 import os
 from datetime import datetime
-from getpass import getpass
 import sys
-import time
+import tkinter as tk
 
 # settings
 DATABASE_FOLDER = "database_folder"
@@ -12,25 +11,11 @@ CHECKIN_FOLDER = "checkin_logs"
 DISCLAIMER = "By scanning your ID, you agree to the terms and conditions."
 EXIT_CODE = "adminexit"
 
-
-def check_exit(value):
-    if value.strip().lower() == EXIT_CODE:
-        print("Exit code entered. Program ending", end="", flush=True)
-        for _ in range(3):
-            time.sleep(1)
-            print(".", end="", flush=True)
-        sys.exit()
+# create folders
+os.makedirs(CHECKIN_FOLDER, exist_ok=True)
+os.makedirs(DATABASE_FOLDER, exist_ok=True)
 
 
-# create check-in folder if it does not exist
-if not os.path.exists(CHECKIN_FOLDER):
-    os.makedirs(CHECKIN_FOLDER)
-
-# create database folder if it does not exist
-if not os.path.exists(DATABASE_FOLDER):
-    os.makedirs(DATABASE_FOLDER)
-
-# creates database
 def create_database_if_needed():
     if not os.path.exists(DATABASE_FILE):
         with open(DATABASE_FILE, mode="w", newline="", encoding="utf-8") as file:
@@ -38,13 +23,12 @@ def create_database_if_needed():
             writer.writerow(["Name", "Card ID", "Student ID", "Phone Number"])
 
 
-# current time function
 def get_today_checkin_file():
     today = datetime.now().strftime("%Y-%m-%d")
     filename = "checkin_{0}.csv".format(today)
     return os.path.join(CHECKIN_FOLDER, filename)
 
-# creates checkin file
+
 def create_checkin_file_if_needed(filename):
     if not os.path.exists(filename):
         with open(filename, mode="w", newline="", encoding="utf-8") as file:
@@ -52,20 +36,14 @@ def create_checkin_file_if_needed(filename):
             writer.writerow(["Name", "Card ID", "Student ID", "Phone Number", "Timestamp"])
 
 
-# swipe parsing
 def parse_swipe(swipe):
     swipe = swipe.strip()
 
-    # must contain track 1 separators
     if "^" not in swipe:
         raise ValueError("Swipe data missing '^' separators")
 
     parts = swipe.split("^")
 
-    if len(parts) < 2:
-        raise ValueError("Swipe data incomplete")
-
-    # first part contains %B + card id
     card_part = parts[0].strip()
 
     if not card_part.startswith("%B"):
@@ -73,21 +51,13 @@ def parse_swipe(swipe):
 
     card_id = card_part.replace("%B", "").strip()
 
-    # name section
     name_raw = parts[1].strip()
 
     if "/" not in name_raw:
         raise ValueError("Name format invalid")
 
-    name_parts = name_raw.split("/")
+    last, first = name_raw.split("/")[0:2]
 
-    if len(name_parts) < 2:
-        raise ValueError("Name format incomplete")
-
-    last = name_parts[0].strip()
-    first = name_parts[1].strip()
-
-    # clean extra spaces inside first name
     first = " ".join(first.split())
     last = " ".join(last.split())
 
@@ -96,7 +66,6 @@ def parse_swipe(swipe):
     return formatted_name, card_id
 
 
-# validating student ID and phone number is 10 digits
 def valid_student_id(student_id):
     return student_id.isdigit() and len(student_id) == 10
 
@@ -110,7 +79,6 @@ def normalize_phone_number(phone):
     return "".join(ch for ch in phone if ch.isdigit())
 
 
-# database function
 def find_student_in_database(card_id):
     if not os.path.exists(DATABASE_FILE):
         return None
@@ -130,7 +98,6 @@ def add_student_to_database(name, card_id, student_id, phone_number):
         writer.writerow([name, card_id, student_id, phone_number])
 
 
-# check-in functions
 def already_checked_in_today(filename, card_id):
     if not os.path.exists(filename):
         return False
@@ -152,48 +119,84 @@ def save_checkin(filename, name, card_id, student_id, phone_number):
         writer.writerow([name, card_id, student_id, phone_number, timestamp])
 
 
-# main
-def main():
-    create_database_if_needed()
+class CheckInApp:
 
-    while True: # sentinel loop
-        print("")
-        print(DISCLAIMER)
-        print("Please swipe your card.")
-        print("")
+    def __init__(self, root):
+        self.root = root
+        self.root.title("ID Check-In System")
+        self.root.geometry("520x380")
 
-        # used getpass() instead of input()
-        swipe = getpass("Swipe Card: ").strip() # used getpass instead of input() to hide info
-        check_exit(swipe)
+        create_database_if_needed()
+
+        self.swipe_var = tk.StringVar()
+        self.student_var = tk.StringVar()
+        self.phone_var = tk.StringVar()
+        self.exit_var = tk.StringVar()
+        self.status_var = tk.StringVar(value="Waiting for card swipe...")
+
+        self.pending_name = None
+        self.pending_card_id = None
+
+        tk.Label(root, text="ID Check-In System", font=("Arial", 16, "bold")).pack(pady=10)
+        tk.Label(root, text=DISCLAIMER, wraplength=450).pack(pady=5)
+
+        frame = tk.Frame(root)
+        frame.pack(pady=10)
+
+        tk.Label(frame, text="Swipe Card").grid(row=0, column=0, pady=5)
+        self.swipe_entry = tk.Entry(frame, textvariable=self.swipe_var, show="*", width=35)
+        self.swipe_entry.grid(row=0, column=1)
+        self.swipe_entry.bind("<Return>", lambda event: self.process_swipe())
+
+        tk.Label(frame, text="Student ID").grid(row=1, column=0, pady=5)
+        self.student_entry = tk.Entry(frame, textvariable=self.student_var, state="disabled", width=35)
+        self.student_entry.grid(row=1, column=1)
+
+        tk.Label(frame, text="Phone Number").grid(row=2, column=0, pady=5)
+        self.phone_entry = tk.Entry(frame, textvariable=self.phone_var, state="disabled", width=35)
+        self.phone_entry.grid(row=2, column=1)
+
+        tk.Label(frame, text="Admin").grid(row=3, column=0, pady=10)
+        self.exit_entry = tk.Entry(frame, textvariable=self.exit_var, show="*", width=35)
+        self.exit_entry.grid(row=3, column=1)
+
+        button_frame = tk.Frame(root)
+        button_frame.pack(pady=10)
+
+        tk.Button(button_frame, text="Process Swipe", command=self.process_swipe).grid(row=0, column=0, padx=5)
+        tk.Button(button_frame, text="Save New Student", command=self.save_new_student).grid(row=0, column=1, padx=5)
+        tk.Button(button_frame, text="Check Admin", command=self.check_admin_exit).grid(row=0, column=2, padx=5)
+
+        tk.Label(root, text="Status:", font=("Arial", 11, "bold")).pack()
+        tk.Label(root, textvariable=self.status_var, wraplength=450).pack()
+
+    def check_admin_exit(self):
+        if self.exit_var.get().strip().lower() == EXIT_CODE:
+            self.root.destroy()
+
+    def process_swipe(self):
+        swipe = self.swipe_var.get().strip()
 
         if swipe == "":
-            print("No swipe detected. Please try again.")
-            continue
+            self.status_var.set("No swipe detected.")
+            return
 
         try:
             name, card_id = parse_swipe(swipe)
-        except Exception as error:
-            print("Invalid swipe format. Please try again.")
-            print("Debug info:", error)
-            continue
+        except Exception as e:
+            self.status_var.set("Invalid swipe format.")
+            return
 
         checkin_file = get_today_checkin_file()
         create_checkin_file_if_needed(checkin_file)
 
         if already_checked_in_today(checkin_file, card_id):
-            print("{0} has already checked in today. Entry ignored.".format(name))
-            continue
+            self.status_var.set(f"{name} already checked in today.")
+            return
 
         student = find_student_in_database(card_id)
 
         if student:
-            print("")
-            print("Student found in database:")
-            print("Name: {0}".format(student["Name"]))
-            print("Card ID: {0}".format(student["Card ID"]))
-            print("Student ID: {0}".format(student["Student ID"]))
-            print("Phone Number: {0}".format(student["Phone Number"]))
-
             save_checkin(
                 checkin_file,
                 student["Name"],
@@ -202,37 +205,50 @@ def main():
                 student["Phone Number"]
             )
 
-            print("Check-in saved successfully.")
+            self.status_var.set(f"Check-in saved for {student['Name']}")
+            self.swipe_var.set("")
+            return
 
-        else:
-            print("")
-            print("Hello, {0}. You are not in the database yet.".format(name))
-            print("Please enter your Student ID and Phone Number.")
+        self.pending_name = name
+        self.pending_card_id = card_id
 
-            student_id = getpass("Student ID (10 digits): ").strip() # used getpass instead of input() to hide info
-            check_exit(student_id)
-            
-            while not valid_student_id(student_id):
-                print("Invalid Student ID. It must be exactly 10 digits.")
-                student_id = getpass("Student ID (10 digits): ").strip() # used getpass instead of input() to hide info
-                check_exit(student_id)
+        self.student_entry.config(state="normal")
+        self.phone_entry.config(state="normal")
 
-            phone_number = getpass("Phone Number (10 digits): ").strip() # used getpass instead of input() to hide info
-            check_exit(phone_number)
-            
-            while not valid_phone_number(phone_number):
-                print("Invalid phone number. It must contain exactly 10 digits.")
-                phone_number = getpass("Phone Number (10 digits): ").strip() # used getpass instead of input() to hide info
-                check_exit(phone_number)
+        self.status_var.set(f"New student detected: {name}")
 
-            phone_number = normalize_phone_number(phone_number)
+    def save_new_student(self):
 
-            add_student_to_database(name, card_id, student_id, phone_number)
-            save_checkin(checkin_file, name, card_id, student_id, phone_number)
+        student_id = self.student_var.get().strip()
+        phone = self.phone_var.get().strip()
 
-            print("New student added to database.")
-            print("Check-in saved successfully.")
+        if not valid_student_id(student_id):
+            self.status_var.set("Invalid Student ID.")
+            return
+
+        if not valid_phone_number(phone):
+            self.status_var.set("Invalid phone number.")
+            return
+
+        phone = normalize_phone_number(phone)
+
+        checkin_file = get_today_checkin_file()
+        create_checkin_file_if_needed(checkin_file)
+
+        add_student_to_database(self.pending_name, self.pending_card_id, student_id, phone)
+        save_checkin(checkin_file, self.pending_name, self.pending_card_id, student_id, phone)
+
+        self.status_var.set("New student added and checked in.")
+
+        self.student_var.set("")
+        self.phone_var.set("")
+        self.swipe_var.set("")
+
+        self.student_entry.config(state="disabled")
+        self.phone_entry.config(state="disabled")
 
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = CheckInApp(root)
+    root.mainloop()
