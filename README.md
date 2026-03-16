@@ -85,13 +85,21 @@ The program checks the current date and automatically creates a new CSV file whe
 
 smart-id-verification-system/
 ├── main.py
+
 ├── checkin_logs/
+
 │   └── yyyy-mm-dd.csv
+
 ├── captured_images/
+
 │   └── yyyy-mm-dd_14-32-11.jpg
+
 ├── database.csv
+
 ├── LICENSE
+
 └── README.md
+
 
 
 
