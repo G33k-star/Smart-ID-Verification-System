@@ -79,7 +79,8 @@ The system formats the collected information and appends it to a CSV file.
 The program checks the current date and automatically creates a new CSV file when the date changes.
 
 ---
-'''
+
+```text
 smart-id-verification-system/
 ├── main.py
 ├── checkin_logs/
@@ -89,7 +90,8 @@ smart-id-verification-system/
 ├── database.csv
 ├── LICENSE
 └── README.md
-'''
+```
+
 
 
 
