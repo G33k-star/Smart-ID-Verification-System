@@ -104,8 +104,8 @@ Primary script responsible for handling input, camera capture, prompting users, 
 **checkin_logs/**  
 Directory where daily check-in CSV log files are stored.
 
-**captured_images/**  
-Directory where camera images taken during check-ins are stored.
+**captured_images/** (pending)
+Directory where camera images taken during check-ins are stored. (PAUSED)
 
 **database.csv**  
 File where all known user information is stored.
