@@ -94,13 +94,3 @@ smart-id-verification-system/
 ├── checkin_logs/
 └── terms_and_conditions.txt
 ```
-
-
-**main.py**
-Primary script responsible for handling input, camera capture, prompting users, and logging data.
-
-**checkin_logs/**  
-Directory where daily check-in CSV log files are stored.
-
-**database.csv**  
-File where all known user information is stored.
